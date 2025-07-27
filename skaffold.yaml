@@ -1,0 +1,80 @@
+apiVersion: skaffold/v4beta13
+kind: Config
+metadata:
+  name: crossplane-function-go-skaffold
+  annotations:
+    config.kubernetes.io/local-config: "true"
+build:
+  artifacts:
+    - image: crossplane-function-go-skaffold
+      custom:
+        buildCommand: ./build.sh .
+        dependencies:
+          paths:
+            - "**/*.go"
+            - build.sh
+            - fn.go
+            - go.mod
+            - k8s/function.yaml.tmpl
+            - main.go
+            - package/crossplane.yaml
+            - skaffold.yaml
+          ignore:
+            - Brewfile
+            - CODE_OF_CONDUCT.md
+            - CONTRIBUTING.md
+            - example/**
+            - fn_test.go
+            - k8s/function.yaml
+            - .gitignore
+            - .golangci.yaml
+            - go.sum
+            - Makefile
+            - NOTICE
+            - README.md
+            - renovate.json
+      hooks:
+        after:
+          # Working around a bug in the local registry setup.
+          - command: [ "sh", "-c", "envsubst < ./function.yaml.tmpl > ./function.yaml" ]
+            dir: ./k8s
+  insecureRegistries:
+    - localhost:5001
+  tagPolicy:
+    inputDigest: {}
+  platforms:
+    - linux/amd64
+  local:
+    concurrency: 0
+    push: true
+deploy:
+  kubectl:
+    hooks:
+      after:
+        - host:
+            command: [ "sh", "-c", "kubectl --context $SKAFFOLD_KUBE_CONTEXT wait --for condition=healthy --timeout 60s function --selector skaffold.dev/run-id=$SKAFFOLD_RUN_ID" ]
+  logs:
+    prefix: container
+manifests:
+  rawYaml:
+    - k8s/*.yaml
+resourceSelector:
+  allow:
+    - groupKind: Function.pkg.crossplane.io
+      image:
+        - .spec.package
+      labels:
+        - .*
+profiles:
+  - name: debug-image
+    # Alter the Skaffold config when running `skaffold debug` and `skaffold dev`,
+    # and when deploying to a local `kind` cluster.
+    activation:
+      - command: debug
+      - command: dev
+      - kubeContext: kind.*
+    patches:
+      # Use a different base image when developing and debugging.
+      - op: replace
+        path: /build/artifacts/0/custom/buildCommand
+        value: RUNTIME_IMAGE=gcr.io/distroless/base-debian12:debug-nonroot ./build.sh .

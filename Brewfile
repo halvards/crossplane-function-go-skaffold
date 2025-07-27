@@ -1,0 +1,7 @@
+brew "gettext"
+brew "crane"
+brew "crossplane"
+brew "kind"
+brew "ko"
+brew "kubernetes-cli"
+brew "skaffold"

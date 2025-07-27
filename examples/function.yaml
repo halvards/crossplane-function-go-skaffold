@@ -1,0 +1,8 @@
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: crossplane-function-go-skaffold
+  annotations:
+    # This annotation tells `crossplane render` to connect to the function locally.
+    render.crossplane.io/runtime: Development
+spec: {}

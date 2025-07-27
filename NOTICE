@@ -1,0 +1,15 @@
+crossplane-function-go-skaffold
+Copyright 2025 Atlassian Pty Ltd
+
+This project includes modified code from the following projects,
+as denoted by notifications in the source code headers:
+
+function-template-go
+https://github.com/crossplane/function-template-go
+Copyright 2025 The Crossplane Authors
+Licensed under the Apache License, Version 2.0
+
+Crossplane Documentation
+https://github.com/crossplane/docs
+Copyright 2025 The Crossplane Authors
+Licensed under the Creative Commons Attribution 4.0 International Public License

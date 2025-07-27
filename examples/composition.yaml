@@ -1,0 +1,13 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: function-xbuckets
+spec:
+  compositeTypeRef:
+    apiVersion: example.atlassian.com/v1alpha1
+    kind: XBuckets
+  mode: Pipeline
+  pipeline:
+  - step: run-the-template
+    functionRef:
+      name: crossplane-function-go-skaffold

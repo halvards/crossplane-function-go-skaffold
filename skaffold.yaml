@@ -15,7 +15,7 @@ build:
             - build.sh
             - fn.go
             - go.mod
-            - k8s/function.yaml.tmpl
+            - k8s/function.yaml
             - main.go
             - package/crossplane.yaml
             - skaffold.yaml
@@ -23,9 +23,8 @@ build:
             - Brewfile
             - CODE_OF_CONDUCT.md
             - CONTRIBUTING.md
-            - example/**
+            - examples/**
             - fn_test.go
-            - k8s/function.yaml
             - .gitignore
             - .golangci.yaml
             - go.sum
@@ -33,11 +32,6 @@ build:
             - NOTICE
             - README.md
             - renovate.json
-      hooks:
-        after:
-          # Working around a bug in the local registry setup.
-          - command: [ "sh", "-c", "envsubst < ./function.yaml.tmpl > ./function.yaml" ]
-            dir: ./k8s
   insecureRegistries:
     - localhost:5001
   tagPolicy:
@@ -58,6 +52,13 @@ deploy:
 manifests:
   rawYaml:
     - k8s/*.yaml
+  hooks:
+    after:
+      - host:
+          # Working around Crossplane's non-standard container image fetching.
+          command: [ "sed", "s/localhost:5001/kind-registry:5000/" ]
+          dir: k8s
+          withChange: true
 resourceSelector:
   allow:
     - groupKind: Function.pkg.crossplane.io

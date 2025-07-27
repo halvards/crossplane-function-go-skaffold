@@ -1,8 +1,6 @@
-# vi: set ft=yaml :
-
 apiVersion: pkg.crossplane.io/v1
 kind: Function
 metadata:
   name: crossplane-function-go-skaffold
 spec:
-  package: kind-registry:5000/crossplane-function-go-skaffold:$SKAFFOLD_IMAGE_TAG
+  package: crossplane-function-go-skaffold

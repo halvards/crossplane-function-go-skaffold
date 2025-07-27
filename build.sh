@@ -14,15 +14,18 @@ mkdir -p "bin/$platform"
 
 # Build the container image using ko and create a tarball.
 image_tarball="./bin/$platform/image.tar.gz"
+rm -f "$image_tarball"
 echo "Building container image tarball to $image_tarball"
 ko build \
   --platform="$platform" \
   --push=false \
   --tags= \
+  --tarball="$image_tarball" \
   "$go_package"
 
 # Build the crossplane package from the container image tarball.
 function_package_file="./bin/$platform/function-package.xpkg"
+rm -f "$function_package_file"
 echo "Building Crossplane function package to $function_package_file"
 crossplane xpkg build \
   --embed-runtime-image-tarball="$image_tarball" \

@@ -1,13 +1,16 @@
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: function-xbuckets
+  name: xnetworks.platform.acme.co
 spec:
   compositeTypeRef:
     apiVersion: example.atlassian.com/v1alpha1
-    kind: XBuckets
+    kind: XNetwork
   mode: Pipeline
   pipeline:
-  - step: run-the-template
+  - step: compose
     functionRef:
       name: crossplane-function-go-skaffold
+  - step: automatically-detect-ready-composed-resources
+    functionRef:
+      name: crossplane-contrib-function-auto-ready

@@ -3,4 +3,4 @@ kind: Function
 metadata:
   name: crossplane-function-go-skaffold
 spec:
-  package: crossplane-function-go-skaffold
+  package: crossplane-function-go-skaffold # Skaffold image placeholder

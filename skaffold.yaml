@@ -13,25 +13,13 @@ build:
           paths:
             - "**/*.go"
             - build.sh
-            - fn.go
             - go.mod
-            - k8s/function.yaml
-            - main.go
-            - package/crossplane.yaml
+            - k8s/**/*.yaml
+            - package/**/*.yaml
             - skaffold.yaml
           ignore:
-            - Brewfile
-            - CODE_OF_CONDUCT.md
-            - CONTRIBUTING.md
             - examples/**
-            - fn_test.go
-            - .gitignore
-            - .golangci.yaml
-            - go.sum
-            - Makefile
-            - NOTICE
-            - README.md
-            - renovate.json
+            - "**/*_test.go"
   insecureRegistries:
     - localhost:5001
   tagPolicy:

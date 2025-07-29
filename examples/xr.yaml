@@ -1,13 +1,11 @@
-apiVersion: example.atlassian.com/v1alpha1
-kind: XBuckets
+apiVersion: platform.acme.co/v1alpha1
+kind: XNetwork
 metadata:
-  name: example-buckets
+  name: network1
+  annotations:
+    render.crossplane.io/composition-path: composition.yaml
+    render.crossplane.io/function-path: function.yaml
 spec:
-  compositionRef:
-    name: crossplane-function-go-skaffold
   parameters:
-    region: us-east-2
-    names:
-      - crossplane-functions-example-a
-      - crossplane-functions-example-b
-      - crossplane-functions-example-c
+    autoCreateSubnetworks: true
+    routingMode: "GLOBAL"

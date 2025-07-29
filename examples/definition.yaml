@@ -1,62 +1,47 @@
 apiVersion: apiextensions.crossplane.io/v1
 kind: CompositeResourceDefinition
 metadata:
-  name: xbuckets.example.atlassian.com
+  name: xnetworks.example.atlassian.com
 spec:
   group: example.atlassian.com
+  categories:
+  - crossplane
   names:
-#    categories:
-#      - fleet
-#      - crossplane
-    kind: XBuckets
-    plural: xbuckets
-#  claimNames:
-#    kind: Bucket
-#    plural: buckets
+    kind: XNetwork
+    plural: xnetworks
+  claimNames:
+    kind: Network
+    plural: networks
   versions:
-    - name: v1alpha1
-      served: true
-      referenceable: true
-      schema:
-        openAPIV3Schema:
-          type: object
-          required:
-            - spec
-          properties:
-            spec:
-              type: object
-              description: |
-                The specification for how the buckets should be deployed.
-              required:
-                - parameters
-              properties:
-                parameters:
-                  type: object
-                  description: |
-                    The parameters for the buckets.
-                  required:
-                    - region
-                    - names
-                  properties:
-                    region:
-                      type: string
-                      description: |
-                        The region for the buckets.
-                    names:
-                      type: array
-                      items:
-                        type: string
-                      description: |
-                        The names of the buckets.
-#            status:
-#              type: object
-#              description: |
-#                The status of the resource.
-#              properties:
-#                observedGeneration:
-#                  type: integer
-#                  format: int64
-#                  description: |-
-#                    ObservedGeneration represents the .metadata.generation that the condition was set based upon.
-#                    For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
-#                    with respect to the current state of the instance.
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            description: |
+              The specification for how this network should be
+              deployed.
+            properties:
+              parameters:
+                type: object
+                description: |
+                  The parameters indicating how this network should
+                  be configured.
+                properties:
+                  autoCreateSubnetworks:
+                    type: boolean
+                    description: |
+                      Whether a subnetwork should automatically get
+                      created.
+                  routingMode:
+                    type: string
+                    description: |
+                      The routing mode of this network.
+                required:
+                - autoCreateSubnetworks
+            required:
+            - parameters

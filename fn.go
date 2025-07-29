@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -65,18 +66,25 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 		"xr-name", xr.Resource.GetName(),
 	)
 
-	// Get the region from the XR. The XR has getter methods like GetString,
+	// Get the `autoCreateSubnetworks` parameter from the XR. The XR has getter methods like GetString,
 	// GetBool, etc. You can use them to get values by their field path.
-	region, err := xr.Resource.GetString("spec.parameters.region")
+	autoCreateSubnetworks, err := xr.Resource.GetBool("spec.parameters.autoCreateSubnetworks")
 	if err != nil {
-		response.Fatal(rsp, errors.Wrapf(err, "cannot read spec.parameters.region field of %s", xr.Resource.GetKind()))
+		response.Fatal(rsp, errors.Wrapf(err, "cannot read spec.parameters.autoCreateSubnetworks field of %s", xr.Resource.GetKind()))
 		return rsp, nil
 	}
 
-	// Get the array of bucket names from the XR.
-	names, err := xr.Resource.GetStringArray("spec.parameters.names")
+	// Get the `routingMode` parameter from the XR.
+	routingMode, err := xr.Resource.GetString("spec.parameters.routingMode")
 	if err != nil {
-		response.Fatal(rsp, errors.Wrapf(err, "cannot read spec.parameters.names field of %s", xr.Resource.GetKind()))
+		response.Fatal(rsp, errors.Wrapf(err, "cannot read spec.parameters.routingMode field of %s", xr.Resource.GetKind()))
+		return rsp, nil
+	}
+
+	// Get the `name` from the XR metadata.
+	name, err := xr.Resource.GetString("metadata.name")
+	if err != nil {
+		response.Fatal(rsp, errors.Wrapf(err, "cannot read metadata.name field of %s", xr.Resource.GetKind()))
 		return rsp, nil
 	}
 
@@ -93,53 +101,58 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 	// composed.From uses this to automatically set apiVersion and kind.
 	_ = nopapis.AddToScheme(composed.Scheme)
 
-	// Add a desired NopResource resource (pretend S3 bucket) for each name.
-	for _, name := range names {
-		// One advantage of writing a function in Go is strong typing. The
-		// function can import and use managed resource types from the provider.
-		b := &nopv1alpha1.NopResource{
-			ObjectMeta: metav1.ObjectMeta{
-				// Set the external name annotation to the desired bucket name.
-				// If we were using real S3 resource, this would control what the bucket would be named in AWS.
-				Annotations: map[string]string{
-					"crossplane.io/external-name": name,
-				},
+	// Add a desired NopResource resource.
+	// One advantage of writing a function in Go is strong typing. The
+	// function can import and use managed resource types from the provider.
+	fields, err := json.Marshal(map[string]interface{}{
+		"autoCreateSubnetworks": autoCreateSubnetworks,
+		"routingMode":           routingMode,
+	})
+	if err != nil {
+		response.Fatal(rsp, errors.Wrapf(err, "cannot encode fields from %T as JSON", req))
+		return rsp, nil
+	}
+	b := &nopv1alpha1.NopResource{
+		ObjectMeta: metav1.ObjectMeta{
+			// Set the external name annotation to the name from the XR.
+			// If we were using real cloud resources, this would control the name of the managed resource.
+			Annotations: map[string]string{
+				"crossplane.io/external-name": name,
 			},
-			Spec: nopv1alpha1.NopResourceSpec{
-				ForProvider: nopv1alpha1.NopResourceParameters{
-					ConditionAfter: []nopv1alpha1.ResourceConditionAfter{
-						{
-							ConditionStatus: "True",
-							ConditionType:   "Ready",
-							Time: metav1.Duration{
-								Duration: 5 * time.Second,
-							},
+		},
+		Spec: nopv1alpha1.NopResourceSpec{
+			ForProvider: nopv1alpha1.NopResourceParameters{
+				ConditionAfter: []nopv1alpha1.ResourceConditionAfter{
+					{
+						ConditionStatus: "True",
+						ConditionType:   "Ready",
+						Time: metav1.Duration{
+							Duration: 5 * time.Second,
 						},
 					},
-					Fields: runtime.RawExtension{
-						// Set the bucket's region to the value read from the XR.
-						Raw: []byte("{\"region\": \"" + region + "\"}"),
-					},
+				},
+				Fields: runtime.RawExtension{
+					Raw: fields,
 				},
 			},
-		}
-
-		// Convert the bucket to the unstructured resource data format the SDK
-		// uses to store desired composed resources.
-		cd, err := composed.From(b)
-		if err != nil {
-			response.Fatal(rsp, errors.Wrapf(err, "cannot convert %T to %T", b, &composed.Unstructured{}))
-			return rsp, nil
-		}
-
-		// Add the bucket to the map of desired composed resources. It's
-		// important that the function adds the same bucket every time it's
-		// called. It's also important that the bucket is added with the same
-		// resource.Name every time it's called. The function prefixes the name
-		// with "xbuckets-" to avoid collisions with any other composed
-		// resources that might be in the desired resources map.
-		desired[resource.Name("xbuckets-"+name)] = &resource.DesiredComposed{Resource: cd}
+		},
 	}
+
+	// Convert the bucket to the unstructured resource data format the SDK
+	// uses to store desired composed resources.
+	cd, err := composed.From(b)
+	if err != nil {
+		response.Fatal(rsp, errors.Wrapf(err, "cannot convert %T to %T", b, &composed.Unstructured{}))
+		return rsp, nil
+	}
+
+	// Add the managed resource to the map of desired composed resources. It's
+	// important that the function adds the same managed resource every time it's
+	// called. It's also important that the managed resource is added with the same
+	// resource.Name every time it's called. The function prefixes the name
+	// with "xnetworks-" to avoid collisions with any other composed
+	// resources that might be in the desired resources map.
+	desired[resource.Name("xnetworks-"+name)] = &resource.DesiredComposed{Resource: cd}
 
 	// Finally, save the updated desired composed resources to the response.
 	if err := response.SetDesiredComposedResources(rsp, desired); err != nil {
@@ -150,7 +163,7 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 	// Log what the function did. This will only appear in the function's pod
 	// logs. A function can use response.Normal and response.Warning to emit
 	// Kubernetes events associated with the XR it's operating on.
-	log.Info("Added desired nop resources", "region", region, "count", len(names))
+	log.Info("Added desired NopResources", "name", name)
 
 	// You can set a custom status condition on the claim. This allows you
 	// to communicate with the user.

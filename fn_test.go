@@ -31,26 +31,22 @@ func TestRunFunction(t *testing.T) {
 		want   want
 	}{
 		"AddTwoBuckets": {
-			reason: "The Function should add two buckets to the desired composed resources",
+			reason: "The Function should add a NopResource to the desired composed resource map",
 			args: args{
 				req: &fnv1.RunFunctionRequest{
 					Observed: &fnv1.State{
 						Composite: &fnv1.Resource{
-							// MustStructJSON is a handy way to provide mock
-							// resources.
+							// MustStructJSON is a handy way to provide mock resources.
 							Resource: resource.MustStructJSON(`{
-								"apiVersion": "example.crossplane.io/v1alpha1",
-								"kind": "XBuckets",
+								"apiVersion": "example.atlassian.com/v1alpha1",
+								"kind": "XNetworks",
 								"metadata": {
 									"name": "test"
 								},
 								"spec": {
 									"parameters": {
-										"region": "us-east-2",
-										"names": [
-											"test-bucket-a",
-											"test-bucket-b"
-										]
+										"autoCreateSubnetworks": true,
+										"routingMode": "GLOBAL"
 									}
 								}
 							}`),
@@ -63,12 +59,12 @@ func TestRunFunction(t *testing.T) {
 					Meta: &fnv1.ResponseMeta{Ttl: durationpb.New(60 * time.Second)},
 					Desired: &fnv1.State{
 						Resources: map[string]*fnv1.Resource{
-							"xbuckets-test-bucket-a": {Resource: resource.MustStructJSON(`{
+							"xnetworks-test": {Resource: resource.MustStructJSON(`{
 								"apiVersion": "nop.crossplane.io/v1alpha1",
 								"kind": "NopResource",
 								"metadata": {
 									"annotations": {
-										"crossplane.io/external-name": "test-bucket-a"
+										"crossplane.io/external-name": "test"
 									}
 								},
 								"spec": {
@@ -81,33 +77,8 @@ func TestRunFunction(t *testing.T) {
 											}
 										],
 										"fields": {
-											"region": "us-east-2"
-										}
-									}
-								},
-								"status": {
-									"observedGeneration": 0
-								}
-							}`)},
-							"xbuckets-test-bucket-b": {Resource: resource.MustStructJSON(`{
-								"apiVersion": "nop.crossplane.io/v1alpha1",
-								"kind": "NopResource",
-								"metadata": {
-									"annotations": {
-										"crossplane.io/external-name": "test-bucket-b"
-									}
-								},
-								"spec": {
-									"forProvider": {
-										"conditionAfter": [
-											{
-												"conditionStatus": "True",
-												"conditionType": "Ready",
-												"time": "5s"
-											}
-										],
-										"fields": {
-											"region": "us-east-2"
+											"autoCreateSubnetworks": true,
+											"routingMode": "GLOBAL"
 										}
 									}
 								},

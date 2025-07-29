@@ -1,5 +1,7 @@
 # syntax=docker/dockerfile:1
 
+# Used by the GitHub Actions workflow.
+
 # We use the latest Go 1.x version unless asked to use something else.
 # The GitHub Actions CI job sets this argument for a consistent Go version.
 ARG GO_VERSION=1

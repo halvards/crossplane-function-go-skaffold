@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eefo pipefail
+
 go_package=${1:-.}
 debug=${DEBUG:-false}
 default_base_image=gcr.io/distroless/static-debian12:nonroot
@@ -13,36 +14,25 @@ if [[ $debug == "true" ]]; then
 fi
 export KO_DEFAULTBASEIMAGE=${RUNTIME_IMAGE:-$default_base_image}
 
-if ! command -v ko >/dev/null 2>&1; then
-  go install github.com/google/ko@latest
-fi
-
 # TODO: Implement multi-platform builds - requires separate tarballs for each platform.
-echo "Building for platforms: $PLATFORMS"
 platform=$(cut -d, -f1 <<< "$PLATFORMS")
+if [[ "$PLATFORMS" != "$platform" ]]; then
+  echo "error: multi-platform builds has not been implemented yet in this build script" >&2
+  exit 1
+fi
 mkdir -p "bin/$platform"
 
-# Build and push the container image using ko.
-image_base_name=$(rev <<< "$IMAGE" | cut -d: -f2- | rev)
-tag=$(rev <<< "$IMAGE" | cut -d: -f1 | rev)
-
-echo "Building container image for $platform"
-ko_output=$(KO_DOCKER_REPO=$image_base_name ko build \
-  --bare \
+# Build the container image as a tarball using ko.
+image_tarball="./bin/$platform/image.tar.gz"
+rm -f "$image_tarball"
+echo "Building container image to tarball $image_tarball"
+ko build \
   --debug="$debug" \
   --disable-optimizations="$debug" \
   --platform="$platform" \
-  --push=true \
-  --sbom none \
-  --tags "${tag}-base" \
-  "$go_package" | tee)
-# Capture the image reference from the last line of the output of `ko build`.
-image_ref=$(echo "$ko_output" | tail -n1)
-
-# Pull the container image to a tarball.
-image_tarball="./bin/$platform/image.tar.gz"
-rm -f "$image_tarball"
-crane pull "$image_ref" "$image_tarball" --platform "$platform" --insecure
+  --push=false \
+  --tarball="$image_tarball" \
+  "$go_package"
 
 # Build the crossplane package from the container image tarball.
 function_package_file="./bin/$platform/function-package.xpkg"

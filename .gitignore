@@ -2,6 +2,7 @@
 !*/
 !.run/*.xml
 !*.go
+!*.json
 !*.sh
 !*.tmpl
 !*.yaml

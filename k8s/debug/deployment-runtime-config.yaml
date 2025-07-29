@@ -1,4 +1,9 @@
-# The Delve debugger needs privileges!
+# Security context changes for the Delve debugger.
+# Crossplane defaults UID and GID to 2000 and runAsNonRoot=true.
+# If you don't override those fields, Delve outputs this error message on start,
+# but _appears to_ otherwise work:
+#
+#     error layer=debugger could not create config directory: mkdir .config: permission denied
 
 apiVersion: pkg.crossplane.io/v1beta1
 kind: DeploymentRuntimeConfig
@@ -13,7 +18,7 @@ spec:
           containers:
           - name: package-runtime
             securityContext:
-              privileged: true
+#              privileged: true
               runAsGroup: 0
               runAsNonRoot: false
               runAsUser: 0

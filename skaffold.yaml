@@ -6,26 +6,25 @@ metadata:
     config.kubernetes.io/local-config: "true"
 build:
   artifacts:
-    - image: crossplane-function-go-skaffold
-      custom:
-        buildCommand: ./build.sh .
-        dependencies:
-          paths:
-            - "**/*.go"
-            - build.sh
-            - go.mod
-            - k8s/**/*.yaml
-            - package/**/*.yaml
-            - skaffold.yaml
-          ignore:
-            - examples/**
-            - "**/*_test.go"
+  - image: crossplane-function-go-skaffold
+    custom:
+      buildCommand: ./build.sh .
+      dependencies:
+        paths:
+        - "**/*.go"
+        - build.sh
+        - go.mod
+        - k8s/**/*.yaml
+        - package/**/*.yaml
+        - skaffold.yaml
+        ignore:
+        - examples/**
+        - managed/**
+        - "**/*_test.go"
   insecureRegistries:
-    - localhost:5001
+  - localhost:5001
   tagPolicy:
     inputDigest: {}
-  platforms:
-    - linux/amd64
   local:
     concurrency: 0
     push: true
@@ -33,55 +32,75 @@ deploy:
   kubectl:
     hooks:
       after:
-        # Wait for the Crossplane function to be healthy.
-        - host:
-            command: [ "echo", "Waiting for function to be healthy..." ]
-        - host:
-            command: [ "sh", "-c", "kubectl --context $SKAFFOLD_KUBE_CONTEXT wait --for condition=healthy --timeout 60s function --selector skaffold.dev/run-id=$SKAFFOLD_RUN_ID" ]
-  logs:
-    prefix: container
+      # Wait for the Crossplane function to be healthy.
+      - host:
+          command: [ "echo", "Waiting for function to be healthy..." ]
+      - host:
+          command: [ "sh", "-c", "kubectl --context $SKAFFOLD_KUBE_CONTEXT wait --for condition=healthy --timeout 60s function --selector skaffold.dev/run-id=$SKAFFOLD_RUN_ID" ]
 manifests:
   rawYaml:
-    - k8s/*.yaml
+  - k8s/*.yaml
   hooks:
     after:
-      - host:
-          # Working around Crossplane's non-standard container image fetching.
-          command: [ "sed", "s/localhost:5001/kind-registry:5000/" ]
-          dir: k8s
-          withChange: true
+    - host:
+        # Working around Crossplane's non-standard container image fetching.
+        command: [ "sed", "s/localhost:5001/kind-registry:5000/" ]
+        dir: k8s
+        withChange: true
 resourceSelector:
   allow:
-    - groupKind: Function.pkg.crossplane.io
-      image:
-        - .spec.package
-      labels:
-        - .*
+  - groupKind: Function.pkg.crossplane.io
+    image:
+    - .spec.package
+    labels:
+    - .*
 profiles:
-  - name: dev
-    # Alter the Skaffold config when running `skaffold dev`,
-    # and when deploying to a local `kind` cluster.
-    activation:
-      - command: dev
-      - kubeContext: kind.*
-    patches:
-      # Use a different base image when developing.
-      - op: replace
-        path: /build/artifacts/0/custom/buildCommand
-        value: RUNTIME_IMAGE=gcr.io/distroless/base-debian12:debug-nonroot ./build.sh .
-  - name: debug
-    # Alter the Skaffold config when running `skaffold debug`.
-    activation:
-      - command: debug
-    patches:
-      # Use a different base image and install delve in the container image for debugging.
-      - op: replace
-        path: /build/artifacts/0/custom/buildCommand
-        value: DEBUG=true ./build.sh .
-      # Add port forwarding to the Delve debug port.
-      # We can't use Skaffold's built-in port forwarding, because Skaffold doesn't know about the Pod that Crossplane provisions.
-      - op: add
-        path: /deploy/kubectl/hooks/after/-
-        value:
-          host:
-            command: [ "sh", "-c", "./port-forward-debug.sh" ]
+- name: dev
+  # Alter the Skaffold config when running `skaffold dev`.
+  activation:
+  - command: dev
+  patches:
+  # Use a different base image when developing.
+  - op: replace
+    path: /build/artifacts/0/custom/buildCommand
+    value: RUNTIME_IMAGE=gcr.io/distroless/base-debian12:debug-nonroot ./build.sh .
+- name: debug
+  # Alter the Skaffold config when running `skaffold debug`.
+  activation:
+  - command: debug
+  patches:
+  # Use a different base image and install delve in the container image for debugging.
+  - op: replace
+    path: /build/artifacts/0/custom/buildCommand
+    value: DEBUG=true ./build.sh .
+  # Add a Crossplane DeploymentRuntimeConfig to enable debugging in the function pod.
+  # We could use `kustomize` here to apply a patch instead of duplicating parts of the Function manifest.
+  - op: replace
+    path: /manifests/rawYaml
+    value:
+    - k8s/debug/*.yaml
+  # Add port forwarding to the Delve debug port.
+  # We can't use Skaffold's built-in port forwarding, because Skaffold doesn't know about the Pod that Crossplane provisions.
+  - op: add
+    path: /deploy/kubectl/hooks/after/-
+    value:
+      host:
+        command: [ "sh", "-c", "./port-forward-debug.sh" ]
+- name: release
+  # Build for linux/amd64 for release.
+  patches:
+  # Use a different base image and install delve in the container image for debugging.
+  - op: add
+    path: /build/platforms
+    value:
+    - linux/amd64
+  # Use git tag and commit information for tagging the image
+  - op: replace
+    path: /build/tagPolicy
+    value:
+      gitCommit: {}
+  # No hacky local registry overrides required for release builds
+  - op: remove
+    path: /build/insecureRegistries
+  - op: remove
+    path: /manifests/hooks/after

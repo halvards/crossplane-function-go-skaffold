@@ -1,3 +1,4 @@
+brew "dlv"
 brew "gettext"
 brew "crane"
 brew "crossplane"

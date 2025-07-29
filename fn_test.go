@@ -59,32 +59,13 @@ func TestRunFunction(t *testing.T) {
 					Meta: &fnv1.ResponseMeta{Ttl: durationpb.New(60 * time.Second)},
 					Desired: &fnv1.State{
 						Resources: map[string]*fnv1.Resource{
-							"xnetworks-test": {Resource: resource.MustStructJSON(`{
-								"apiVersion": "nop.crossplane.io/v1alpha1",
-								"kind": "NopResource",
+							"sqlinstance-test": {Resource: resource.MustStructJSON(`{
+								"apiVersion": "example.org/v1alpha1",
+								"kind": "SQLInstance",
 								"metadata": {
-									"annotations": {
-										"crossplane.io/external-name": "test"
-									}
+									"name": "test"
 								},
-								"spec": {
-									"forProvider": {
-										"conditionAfter": [
-											{
-												"conditionStatus": "True",
-												"conditionType": "Ready",
-												"time": "5s"
-											}
-										],
-										"fields": {
-											"autoCreateSubnetworks": true,
-											"routingMode": "GLOBAL"
-										}
-									}
-								},
-								"status": {
-									"observedGeneration": 0
-								}
+								"spec": {}
 							}`)},
 						},
 					},

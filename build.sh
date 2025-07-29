@@ -30,6 +30,7 @@ echo "Building container image for $platform"
 ko_output=$(KO_DOCKER_REPO=$image_base_name ko build \
   --bare \
   --debug="$debug" \
+  --disable-optimizations="$debug" \
   --platform="$platform" \
   --push=true \
   --sbom none \
@@ -37,14 +38,6 @@ ko_output=$(KO_DOCKER_REPO=$image_base_name ko build \
   "$go_package" | tee)
 # Capture the image reference from the last line of the output of `ko build`.
 image_ref=$(echo "$ko_output" | tail -n1)
-
-if [[ $debug == "true" ]]; then
-  echo "Adding delve debugging support and enabling debug logging"
-  # shellcheck disable=SC2046
-  crane_output=$(crane mutate "$image_ref" --entrypoint $(crane config "$image_ref" | jq --raw-output '[ .config.Entrypoint[0:2][], "--continue", .config.Entrypoint[2:][], "--debug" ] | @csv'))
-  # Capture the image reference from the last line of the output of `crane mutate`.
-  image_ref=$(echo "$crane_output" | tail -n1)
-fi
 
 # Pull the container image to a tarball.
 image_tarball="./bin/$platform/image.tar.gz"

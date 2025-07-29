@@ -1,0 +1,10 @@
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: crossplane-function-go-skaffold
+spec:
+  package: crossplane-function-go-skaffold # Skaffold image placeholder
+  runtimeConfigRef:
+    apiVersion: pkg.crossplane.io/v1beta1
+    kind: DeploymentRuntimeConfig
+    name: crossplane-function-go-skaffold

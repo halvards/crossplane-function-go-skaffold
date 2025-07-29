@@ -1,0 +1,19 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: nop.sqlinstances.example.org
+spec:
+  compositeTypeRef:
+    apiVersion: example.org/v1alpha1
+    kind: SQLInstance
+  resources:
+  - name: nop
+    base:
+      apiVersion: nop.crossplane.io/v1alpha1
+      kind: NopResource
+      spec:
+        forProvider:
+          conditionAfter:
+          - time: 10s
+            conditionType: Ready
+            conditionStatus: "True"

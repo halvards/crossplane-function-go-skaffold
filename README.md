@@ -43,6 +43,15 @@ kubectl wait --for condition=healthy provider.pkg.crossplane.io/crossplane-contr
 kubectl wait --for condition=healthy function.pkg.crossplane.io/crossplane-contrib-function-auto-ready --timeout 60s
 ```
 
+## Create the no-op managed resource
+
+```shell
+kubectl apply --filename managed/definition.yaml
+kubectl wait xrd sqlinstances.example.org --for condition=Established --timeout 30s
+kubectl apply --filename managed/composition.yaml
+
+```
+
 ## Create the composite resource definition (XRD)
 
 ```shell
@@ -88,7 +97,19 @@ Three different modes are available, `run`, `dev`, and `debug`:
 
     Connect your debugger to `localhost` port `56268` and set breakpoints.
 
+## Create the claim
+
+```shell
+kubectl apply --filename examples/claim.yaml
+```
+
 ## Tips
+
+- Tail the logs of the function pod:
+
+  ```shell
+  kubectl logs --namespace crossplane-system --selector pkg.crossplane.io/function=crossplane-function-go-skaffold --follow
+  ```
 
 - Add the `--cache-artifacts=false` flag to Skaffold commands to bypass
   Skaffold's cache and force a rebuild of the container image.

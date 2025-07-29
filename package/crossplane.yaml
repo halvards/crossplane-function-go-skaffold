@@ -2,4 +2,6 @@ apiVersion: meta.pkg.crossplane.io/v1beta1
 kind: Function
 metadata:
   name: crossplane-function-go-skaffold
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec: {}

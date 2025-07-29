@@ -2,6 +2,8 @@ apiVersion: meta.pkg.crossplane.io/v1alpha1
 kind: Configuration
 metadata:
   name: example-configuration
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
   crossplane:
     version: ">=v1.20.0"

@@ -2,11 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"time"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/crossplane/function-sdk-go/errors"
 	"github.com/crossplane/function-sdk-go/logging"
@@ -15,9 +10,7 @@ import (
 	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/crossplane/function-sdk-go/resource/composed"
 	"github.com/crossplane/function-sdk-go/response"
-
-	nopapis "github.com/crossplane-contrib/provider-nop/apis"
-	nopv1alpha1 "github.com/crossplane-contrib/provider-nop/apis/v1alpha1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // Function returns whatever response you ask it to.
@@ -27,8 +20,8 @@ type Function struct {
 	log logging.Logger
 }
 
-// RunFunction observes an XBuckets composite resource (XR). It adds an NopResource
-// (pretend it's an S3 bucket) to the desired state for every entry in the XR's spec.parameters.names array.
+// RunFunction observes an XNetworks composite resource (XR). It adds a SQLInstance nop resource
+// to the desired state with a name matching the XNetworks XR.
 func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) (*fnv1.RunFunctionResponse, error) {
 	f.log.Info("Running Function", "tag", req.GetMeta().GetTag())
 
@@ -66,21 +59,6 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 		"xr-name", xr.Resource.GetName(),
 	)
 
-	// Get the `autoCreateSubnetworks` parameter from the XR. The XR has getter methods like GetString,
-	// GetBool, etc. You can use them to get values by their field path.
-	autoCreateSubnetworks, err := xr.Resource.GetBool("spec.parameters.autoCreateSubnetworks")
-	if err != nil {
-		response.Fatal(rsp, errors.Wrapf(err, "cannot read spec.parameters.autoCreateSubnetworks field of %s", xr.Resource.GetKind()))
-		return rsp, nil
-	}
-
-	// Get the `routingMode` parameter from the XR.
-	routingMode, err := xr.Resource.GetString("spec.parameters.routingMode")
-	if err != nil {
-		response.Fatal(rsp, errors.Wrapf(err, "cannot read spec.parameters.routingMode field of %s", xr.Resource.GetKind()))
-		return rsp, nil
-	}
-
 	// Get the `name` from the XR metadata.
 	name, err := xr.Resource.GetString("metadata.name")
 	if err != nil {
@@ -99,46 +77,22 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 
 	// Add nop v1alpha1 types to the composed resource scheme.
 	// composed.From uses this to automatically set apiVersion and kind.
-	_ = nopapis.AddToScheme(composed.Scheme)
+	//_ = nopapis.AddToScheme(composed.Scheme)
 
-	// Add a desired NopResource resource.
-	// One advantage of writing a function in Go is strong typing. The
-	// function can import and use managed resource types from the provider.
-	fields, err := json.Marshal(map[string]interface{}{
-		"autoCreateSubnetworks": autoCreateSubnetworks,
-		"routingMode":           routingMode,
-	})
-	if err != nil {
-		response.Fatal(rsp, errors.Wrapf(err, "cannot encode fields from %T as JSON", req))
-		return rsp, nil
-	}
-	b := &nopv1alpha1.NopResource{
-		ObjectMeta: metav1.ObjectMeta{
-			// Set the external name annotation to the name from the XR.
-			// If we were using real cloud resources, this would control the name of the managed resource.
-			Annotations: map[string]string{
-				"crossplane.io/external-name": name,
+	// Add a desired resource. This should ideally take advantage of Go's
+	// strong typing and use imported types, instead of an Unstructured resource.
+	b := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "example.org/v1alpha1",
+			"kind":       "SQLInstance",
+			"metadata": map[string]interface{}{
+				"name": name,
 			},
-		},
-		Spec: nopv1alpha1.NopResourceSpec{
-			ForProvider: nopv1alpha1.NopResourceParameters{
-				ConditionAfter: []nopv1alpha1.ResourceConditionAfter{
-					{
-						ConditionStatus: "True",
-						ConditionType:   "Ready",
-						Time: metav1.Duration{
-							Duration: 5 * time.Second,
-						},
-					},
-				},
-				Fields: runtime.RawExtension{
-					Raw: fields,
-				},
-			},
+			"spec": map[string]interface{}{},
 		},
 	}
 
-	// Convert the bucket to the unstructured resource data format the SDK
+	// Convert the managed resource to the unstructured resource data format the SDK
 	// uses to store desired composed resources.
 	cd, err := composed.From(b)
 	if err != nil {
@@ -150,9 +104,9 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 	// important that the function adds the same managed resource every time it's
 	// called. It's also important that the managed resource is added with the same
 	// resource.Name every time it's called. The function prefixes the name
-	// with "xnetworks-" to avoid collisions with any other composed
+	// with "sqlinstance-" to avoid collisions with any other composed
 	// resources that might be in the desired resources map.
-	desired[resource.Name("xnetworks-"+name)] = &resource.DesiredComposed{Resource: cd}
+	desired[resource.Name("sqlinstance-"+name)] = &resource.DesiredComposed{Resource: cd}
 
 	// Finally, save the updated desired composed resources to the response.
 	if err := response.SetDesiredComposedResources(rsp, desired); err != nil {
@@ -163,7 +117,7 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 	// Log what the function did. This will only appear in the function's pod
 	// logs. A function can use response.Normal and response.Warning to emit
 	// Kubernetes events associated with the XR it's operating on.
-	log.Info("Added desired NopResources", "name", name)
+	log.Info("Added desired resource(s)", "name", name, "count", len(desired))
 
 	// You can set a custom status condition on the claim. This allows you
 	// to communicate with the user.

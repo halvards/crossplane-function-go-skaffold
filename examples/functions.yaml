@@ -5,3 +5,10 @@ metadata:
   annotations:
     render.crossplane.io/runtime: Development # For local `crossplane render`.
 spec: {}
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: crossplane-contrib-function-auto-ready
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/function-auto-ready:v0.5.0

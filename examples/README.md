@@ -10,5 +10,5 @@ go run . --insecure --debug
 
 ```shell
 # Then, in another terminal, call the function with these example manifests
-crossplane render xr.yaml composition.yaml function.yaml
+crossplane render xr.yaml composition.yaml functions.yaml
 ```

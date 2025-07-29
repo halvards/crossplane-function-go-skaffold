@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	"github.com/crossplane/function-sdk-go/errors"
 	"github.com/crossplane/function-sdk-go/logging"
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
@@ -10,7 +12,6 @@ import (
 	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/crossplane/function-sdk-go/resource/composed"
 	"github.com/crossplane/function-sdk-go/response"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // Function returns whatever response you ask it to.
@@ -74,10 +75,6 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 		response.Fatal(rsp, errors.Wrapf(err, "cannot get desired resources from %T", req))
 		return rsp, nil
 	}
-
-	// Add nop v1alpha1 types to the composed resource scheme.
-	// composed.From uses this to automatically set apiVersion and kind.
-	//_ = nopapis.AddToScheme(composed.Scheme)
 
 	// Add a desired resource. This should ideally take advantage of Go's
 	// strong typing and use imported types, instead of an Unstructured resource.

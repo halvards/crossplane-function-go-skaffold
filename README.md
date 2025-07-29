@@ -1,7 +1,7 @@
 # crossplane-function-go-skaffold
 
 Build and deploy a Crossplane composition function written in Go, using
-Skaffold and ko.
+[Skaffold](https://skaffold.dev).
 
 ## Tools required
 

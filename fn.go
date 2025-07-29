@@ -27,7 +27,7 @@ type Function struct {
 }
 
 // RunFunction observes an XBuckets composite resource (XR). It adds an NopResource
-// (pretend it's an S3 bucket) to the desired state for every entry in the XR's spec.names array.
+// (pretend it's an S3 bucket) to the desired state for every entry in the XR's spec.parameters.names array.
 func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) (*fnv1.RunFunctionResponse, error) {
 	f.log.Info("Running Function", "tag", req.GetMeta().GetTag())
 
@@ -67,16 +67,16 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 
 	// Get the region from the XR. The XR has getter methods like GetString,
 	// GetBool, etc. You can use them to get values by their field path.
-	region, err := xr.Resource.GetString("spec.region")
+	region, err := xr.Resource.GetString("spec.parameters.region")
 	if err != nil {
-		response.Fatal(rsp, errors.Wrapf(err, "cannot read spec.region field of %s", xr.Resource.GetKind()))
+		response.Fatal(rsp, errors.Wrapf(err, "cannot read spec.parameters.region field of %s", xr.Resource.GetKind()))
 		return rsp, nil
 	}
 
 	// Get the array of bucket names from the XR.
-	names, err := xr.Resource.GetStringArray("spec.names")
+	names, err := xr.Resource.GetStringArray("spec.parameters.names")
 	if err != nil {
-		response.Fatal(rsp, errors.Wrapf(err, "cannot read spec.names field of %s", xr.Resource.GetKind()))
+		response.Fatal(rsp, errors.Wrapf(err, "cannot read spec.parameters.names field of %s", xr.Resource.GetKind()))
 		return rsp, nil
 	}
 

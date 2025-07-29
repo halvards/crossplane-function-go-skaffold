@@ -45,11 +45,13 @@ func TestRunFunction(t *testing.T) {
 									"name": "test"
 								},
 								"spec": {
-									"region": "us-east-2",
-									"names": [
-										"test-bucket-a",
-										"test-bucket-b"
-									]
+									"parameters": {
+										"region": "us-east-2",
+										"names": [
+											"test-bucket-a",
+											"test-bucket-b"
+										]
+									}
 								}
 							}`),
 						},

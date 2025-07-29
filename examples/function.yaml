@@ -3,6 +3,5 @@ kind: Function
 metadata:
   name: crossplane-function-go-skaffold
   annotations:
-    # This annotation tells `crossplane render` to connect to the function locally.
-    render.crossplane.io/runtime: Development
+    render.crossplane.io/runtime: Development # For local `crossplane render`.
 spec: {}

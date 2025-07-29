@@ -3,8 +3,11 @@ kind: XBuckets
 metadata:
   name: example-buckets
 spec:
-  region: us-east-2
-  names:
-    - crossplane-functions-example-a
-    - crossplane-functions-example-b
-    - crossplane-functions-example-c
+  compositionRef:
+    name: crossplane-function-go-skaffold
+  parameters:
+    region: us-east-2
+    names:
+      - crossplane-functions-example-a
+      - crossplane-functions-example-b
+      - crossplane-functions-example-c

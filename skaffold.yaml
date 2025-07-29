@@ -45,6 +45,9 @@ deploy:
   kubectl:
     hooks:
       after:
+        # Wait for the Crossplane function to be healthy.
+        - host:
+            command: [ "echo", "Waiting for function to be healthy..." ]
         - host:
             command: [ "sh", "-c", "kubectl --context $SKAFFOLD_KUBE_CONTEXT wait --for condition=healthy --timeout 60s function --selector skaffold.dev/run-id=$SKAFFOLD_RUN_ID" ]
   logs:
@@ -67,15 +70,30 @@ resourceSelector:
       labels:
         - .*
 profiles:
-  - name: debug-image
-    # Alter the Skaffold config when running `skaffold debug` and `skaffold dev`,
+  - name: dev
+    # Alter the Skaffold config when running `skaffold dev`,
     # and when deploying to a local `kind` cluster.
     activation:
-      - command: debug
       - command: dev
       - kubeContext: kind.*
     patches:
-      # Use a different base image when developing and debugging.
+      # Use a different base image when developing.
       - op: replace
         path: /build/artifacts/0/custom/buildCommand
         value: RUNTIME_IMAGE=gcr.io/distroless/base-debian12:debug-nonroot ./build.sh .
+  - name: debug
+    # Alter the Skaffold config when running `skaffold debug`.
+    activation:
+      - command: debug
+    patches:
+      # Use a different base image and install delve in the container image for debugging.
+      - op: replace
+        path: /build/artifacts/0/custom/buildCommand
+        value: DEBUG=true ./build.sh .
+      # Add port forwarding to the Delve debug port.
+      # We can't use Skaffold's built-in port forwarding, because Skaffold doesn't know about the Pod that Crossplane provisions.
+      - op: add
+        path: /deploy/kubectl/hooks/after/-
+        value:
+          host:
+            command: [ "sh", "-c", "./port-forward-debug.sh" ]

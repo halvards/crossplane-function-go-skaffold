@@ -1,7 +1,7 @@
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: xnetworks.platform.acme.co
+  name: xnetworks.example.atlassian.com
 spec:
   compositeTypeRef:
     apiVersion: example.atlassian.com/v1alpha1

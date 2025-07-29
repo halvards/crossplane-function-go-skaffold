@@ -4,8 +4,6 @@ metadata:
   name: xnetworks.example.atlassian.com
 spec:
   group: example.atlassian.com
-  categories:
-  - crossplane
   names:
     kind: XNetwork
     plural: xnetworks

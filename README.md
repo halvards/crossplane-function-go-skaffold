@@ -43,33 +43,61 @@ kubectl wait --for condition=healthy provider.pkg.crossplane.io/crossplane-contr
 kubectl wait --for condition=healthy function.pkg.crossplane.io/crossplane-contrib-function-auto-ready --timeout 60s
 ```
 
-## Build and push the function container image that is defined in this repository
+## Create the composite resource definition (XRD)
+
+```shell
+kubectl apply --filename examples/definition.yaml
+kubectl wait xrd xnetworks.example.atlassian.com --for condition=Established --timeout 30s
+```
+
+## Create the composition
+
+```shell
+kubectl apply --filename examples/composition.yaml
+```
+
+## Build and deploy the function package
+
+Three different modes are available:
+
+1.  Build and deploy:
+
+    ```shell
+    skaffold run --default-repo localhost:5001
+    ```
+    
+    To delete the function:
+
+    ```shell
+    skaffold delete
+    ```
+
+2.  Build and deploy, then set file watches.
+    Rebuild and redeploy on any source code changes: 
+
+    ```shell
+    skaffold dev --default-repo localhost:5001
+    ```
+
+3.  Build with a bundled Go debugger (Delve), and deploy with port-forwarding
+    to the debugging port on the Pod:
+
+    ```shell
+    skaffold debug --default-repo localhost:5001
+    ```
+
+    Connect your debugger to `localhost` port `56268` and set breakpoints.
+
+## Build and push the function container image
+
+If you just want to build the function package and push it to your container
+image registry, without deploying it to a cluster:
 
 ```shell
 skaffold build --default-repo localhost:5001
 ```
 
-## Build and deploy the function package
-
-```shell
-skaffold run --default-repo localhost:5001
-```
-
-## Remote debugging
-
-```shell
-skaffold debug --default-repo localhost:5001
-```
-
-Connect your debugger to localhost port 56268 and set your breakpoints!
-
 ## Clean up
-
-Delete the function and all of its owned resources:
-
-```shell
-skaffold delete
-```
 
 Delete the `kind` cluster:
 
@@ -79,8 +107,8 @@ kind delete cluster
 
 ## Tips
 
-- Add the `--cache-artifacts=false` flag to the Skaffold commands to force a
-  rebuild of the container image.
+- Add the `--cache-artifacts=false` flag to Skaffold commands to bypass
+  Skaffold's cache and force a rebuild of the container image.
 
 ## Disclaimer
 

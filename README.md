@@ -58,7 +58,7 @@ kubectl apply --filename examples/composition.yaml
 
 ## Build and deploy the function package
 
-Three different modes are available:
+Three different modes are available, `run`, `dev`, and `debug`:
 
 1.  Build and deploy:
 
@@ -88,14 +88,17 @@ Three different modes are available:
 
     Connect your debugger to `localhost` port `56268` and set breakpoints.
 
-## Build and push the function container image
+## Tips
 
-If you just want to build the function package and push it to your container
-image registry, without deploying it to a cluster:
+- Add the `--cache-artifacts=false` flag to Skaffold commands to bypass
+  Skaffold's cache and force a rebuild of the container image.
 
-```shell
-skaffold build --default-repo localhost:5001
-```
+- You can just build the function package and push it to your container
+  image registry, without deploying it to a cluster:
+
+  ```shell
+  skaffold build --default-repo localhost:5001
+  ```
 
 ## Clean up
 
@@ -104,11 +107,6 @@ Delete the `kind` cluster:
 ```shell
 kind delete cluster
 ```
-
-## Tips
-
-- Add the `--cache-artifacts=false` flag to Skaffold commands to bypass
-  Skaffold's cache and force a rebuild of the container image.
 
 ## Disclaimer
 

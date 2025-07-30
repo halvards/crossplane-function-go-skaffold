@@ -4,6 +4,8 @@
 # but _appears to_ otherwise work:
 #
 #     error layer=debugger could not create config directory: mkdir .config: permission denied
+#
+# Also sets the `--debug` flag on the function container.
 
 apiVersion: pkg.crossplane.io/v1beta1
 kind: DeploymentRuntimeConfig
@@ -17,8 +19,9 @@ spec:
         spec:
           containers:
           - name: package-runtime
+            args:
+            - --debug
             securityContext:
-#              privileged: true
               runAsGroup: 0
               runAsNonRoot: false
               runAsUser: 0

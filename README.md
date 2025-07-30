@@ -96,6 +96,7 @@ Three different modes are available, `run`, `dev`, and `debug`:
     ```
 
     Connect your debugger to `localhost` port `56268` and set breakpoints.
+    Delve suspends launch of the function binary until you connect a debugger. 
 
 ## Create the claim
 

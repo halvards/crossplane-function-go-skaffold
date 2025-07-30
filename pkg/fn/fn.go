@@ -1,9 +1,8 @@
-package main
+// Package fn implements a Crossplane Composition Function.
+package fn
 
 import (
 	"context"
-
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/crossplane/function-sdk-go/errors"
 	"github.com/crossplane/function-sdk-go/logging"
@@ -12,6 +11,7 @@ import (
 	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/crossplane/function-sdk-go/resource/composed"
 	"github.com/crossplane/function-sdk-go/response"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // Function returns whatever response you ask it to.
@@ -19,6 +19,11 @@ type Function struct {
 	fnv1.UnimplementedFunctionRunnerServiceServer
 
 	log logging.Logger
+}
+
+// NewFunction creates an instance of Function.
+func NewFunction(log logging.Logger) *Function {
+	return &Function{log: log}
 }
 
 // RunFunction observes an XNetworks composite resource (XR). It adds a SQLInstance nop resource

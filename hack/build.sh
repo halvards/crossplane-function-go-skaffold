@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# Builds and pushes the Crossplane function package container image.
+#
+
 set -Eefo pipefail
 
 go_package=${1:-.}

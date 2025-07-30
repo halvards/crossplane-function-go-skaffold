@@ -1,18 +1,17 @@
-package main
+package fn
 
 import (
 	"context"
 	"testing"
 	"time"
 
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
+	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/durationpb"
-
-	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
-	"github.com/crossplane/function-sdk-go/resource"
 )
 
 func TestRunFunction(t *testing.T) {

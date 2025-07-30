@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# Sets up port-forwarding to the function Pod.
+#
+
 set -Eeufo pipefail
 
 LOCAL_PORT=${LOCAL_PORT:-56268}

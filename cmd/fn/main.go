@@ -1,16 +1,16 @@
-// Package main implements a Composition Function.
+// Package main implements the entrypoint of a Crossplane Composition Function.
 package main
 
 import (
 	"github.com/alecthomas/kong"
-
 	"github.com/crossplane/function-sdk-go"
+
+	"github.com/halvards/crossplane-function-go-skaffold/pkg/fn"
 )
 
 // CLI of this Function.
 type CLI struct {
-	Debug bool `short:"d" help:"Emit debug logs in addition to info logs."`
-
+	Debug              bool   `short:"d" help:"Emit debug logs in addition to info logs."`
 	Network            string `help:"Network on which to listen for gRPC connections." default:"tcp"`
 	Address            string `help:"Address at which to listen for gRPC connections." default:":9443"`
 	TLSCertsDir        string `help:"Directory containing server certs (tls.key, tls.crt) and the CA used to verify client certificates (ca.crt)" env:"TLS_SERVER_CERTS_DIR"`
@@ -25,7 +25,7 @@ func (c *CLI) Run() error {
 		return err
 	}
 
-	return function.Serve(&Function{log: log},
+	return function.Serve(fn.NewFunction(log),
 		function.Listen(c.Network, c.Address),
 		function.MTLSCertificates(c.TLSCertsDir),
 		function.Insecure(c.Insecure),
@@ -33,6 +33,6 @@ func (c *CLI) Run() error {
 }
 
 func main() {
-	ctx := kong.Parse(&CLI{}, kong.Description("A Crossplane Composition Function."))
+	ctx := kong.Parse(&CLI{}, kong.Description("A sample Crossplane Composition Function."))
 	ctx.FatalIfErrorf(ctx.Run())
 }

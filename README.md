@@ -105,10 +105,16 @@ kubectl apply --filename examples/claim.yaml
 
 ## Tips
 
-- Tail the logs of the function pod:
+- Tail the logs of the function Pod:
 
   ```shell
-  kubectl logs --namespace crossplane-system --selector pkg.crossplane.io/function=crossplane-function-go-skaffold --follow
+  kubectl logs --namespace crossplane-system --selector pkg.crossplane.io/function=crossplane-function-go-skaffold --container package-runtime --follow
+  ```
+
+- Tail the logs of the Crossplane controller Pod:
+
+  ```shell
+  kubectl logs --namespace crossplane-system --selector app=crossplane --container crossplane --follow
   ```
 
 - Add the `--cache-artifacts=false` flag to Skaffold commands to bypass
@@ -119,6 +125,31 @@ kubectl apply --filename examples/claim.yaml
 
   ```shell
   skaffold build --default-repo localhost:5001
+  ```
+
+- You can omit the `--default-repo` flag in Skaffold commands by either:
+
+  1.  Setting and exporting the `SKAFFOLD_DEFAULT_REPO` environment variable
+      to point to your registry (repeat for each new terminal):
+
+      ```shell
+      export SKAFFOLD_DEFAULT_REPO=localhost:5001
+      ```
+
+      or
+
+  2.  Setting the `default-repo` Skaffold config value for your current
+      `kubectl` context:
+
+      ```shell
+      skaffold config set --kube-context $(kubectl config current-context) default-repo localhost:5001
+      ```
+
+- Disable Skaffold survey prompts and usage data gathering:
+
+  ```shell
+  skaffold config set --survey --global disable-prompt true
+  skaffold config set --global collect-metrics false
   ```
 
 ## Clean up

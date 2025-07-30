@@ -8,11 +8,11 @@ build:
   artifacts:
   - image: crossplane-function-go-skaffold
     custom:
-      buildCommand: ./build.sh .
+      buildCommand: ./hack/build.sh ./cmd/fn
       dependencies:
         paths:
         - "**/*.go"
-        - build.sh
+        - hack/build.sh
         - go.mod
         - k8s/**/*.yaml
         - package/**/*.yaml
@@ -55,15 +55,25 @@ resourceSelector:
     labels:
     - .*
 profiles:
+- name: tail
+  # Tail the log output of the function Pod.
+  # Activate with `-ptail` when running `skaffold run`.
+  # We can't rely on Skaffold's build-in log tailing, as Skaffold doesn't
+  # know about the function Pod that the Crossplane controller creates.
+  patches:
+  - op: add
+    path: /deploy/kubectl/hooks/after/-
+    value:
+      host:
+        command: [ "sh", "-c", "echo 'Tailing function log output, press Ctrl+C to stop...' ; kubectl logs --context $SKAFFOLD_KUBE_CONTEXT --namespace crossplane-system --selector pkg.crossplane.io/function=crossplane-function-go-skaffold --container package-runtime --follow" ]
 - name: dev
-  # Alter the Skaffold config when running `skaffold dev`.
+  # Use a different base image when running `skaffold dev`.
   activation:
   - command: dev
   patches:
-  # Use a different base image when developing.
   - op: replace
     path: /build/artifacts/0/custom/buildCommand
-    value: RUNTIME_IMAGE=gcr.io/distroless/base-debian12:debug-nonroot ./build.sh .
+    value: RUNTIME_IMAGE=gcr.io/distroless/base-debian12:debug-nonroot ./hack/build.sh ./cmd/fn
 - name: debug
   # Alter the Skaffold config when running `skaffold debug`.
   activation:
@@ -72,7 +82,7 @@ profiles:
   # Use a different base image and install delve in the container image for debugging.
   - op: replace
     path: /build/artifacts/0/custom/buildCommand
-    value: DEBUG=true ./build.sh .
+    value: DEBUG=true ./hack/build.sh ./cmd/fn
   # Add a Crossplane DeploymentRuntimeConfig to enable debugging in the function pod.
   # We could use `kustomize` here to apply a patch instead of duplicating parts of the Function manifest.
   - op: replace
@@ -85,21 +95,20 @@ profiles:
     path: /deploy/kubectl/hooks/after/-
     value:
       host:
-        command: [ "sh", "-c", "./port-forward-debug.sh" ]
+        command: [ "sh", "-c", "./hack/port-forward-debug.sh" ]
 - name: release
-  # Build for linux/amd64 for release.
+  # Build for linux/amd64 for release, instead of auto-detecting the platorm.
   patches:
-  # Use a different base image and install delve in the container image for debugging.
   - op: add
     path: /build/platforms
     value:
     - linux/amd64
-  # Use git tag and commit information for tagging the image
+  # Use git tag and commit information for tagging the image, instead of a source code digest.
   - op: replace
     path: /build/tagPolicy
     value:
       gitCommit: {}
-  # No hacky local registry overrides required for release builds
+  # No hacky local registry overrides required for release builds.
   - op: remove
     path: /build/insecureRegistries
   - op: remove

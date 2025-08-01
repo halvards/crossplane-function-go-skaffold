@@ -1,7 +1,7 @@
 apiVersion: example.atlassian.com/v1alpha1
 kind: Network
 metadata:
-  name: network2
+  name: network1
 spec:
   parameters:
     autoCreateSubnetworks: true

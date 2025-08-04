@@ -98,6 +98,15 @@ Three different modes are available, `run`, `dev`, and `debug`:
     Connect your debugger to `localhost` port `56268` and set breakpoints.
     Delve suspends launch of the function binary until you connect a debugger. 
 
+## What does debug do?
+
+1.  Use a different base container image - Delve needs glibc.
+2.  Package the Delve debugger for Go into the container image.
+3.  Rewrite the image entrypoint to launch the binary using Delve.
+4.  Patch the container security context to run as `root` for debugging.
+5.  Deploy to the cluster.
+6.  Set up port forwarding from local workstation to Delve debugging port.
+
 ## Create the claim
 
 ```shell

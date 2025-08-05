@@ -1,24 +1,29 @@
 #!/usr/bin/env bash
 #
 # Builds and pushes the Crossplane function package container image.
-#
 
-set -Eefo pipefail
+set -Exefo pipefail
 
-go_package=${1:-.}
-debug=${DEBUG:-false}
-default_base_image=gcr.io/distroless/static-debian12:nonroot
+# shellcheck disable=SC2034
+GO_PACKAGE=${1:-.}
+
+RUNTIME_IMAGE=gcr.io/distroless/static-debian12:nonroot
+CGO_ENABLED=${CGO_ENABLED:-0}
 if [[ $CGO_ENABLED == "1" ]]; then
   echo "CGO is enabled, using base image with glibc"
-  default_base_image=gcr.io/distroless/base-debian12:nonroot
+  RUNTIME_IMAGE=gcr.io/distroless/base-debian12:nonroot
 fi
+debug=${DEBUG:-false}
+GOFLAGS="${GOFLAGS:-"-trimpath"}"
+GO_GCFLAGS="${GO_GCFLAGS:-}"
 if [[ $debug == "true" ]]; then
   echo "Debug mode is enabled"
-  default_base_image=gcr.io/distroless/base-debian12:debug
+  RUNTIME_IMAGE=gcr.io/distroless/base-debian12:debug
+  GOFLAGS=""
+  GO_GCFLAGS="all=-N -l"
 fi
-export KO_DEFAULTBASEIMAGE=${RUNTIME_IMAGE:-$default_base_image}
 
-# TODO: Implement multi-platform builds - requires separate tarballs for each platform.
+# TODO: Implement multi-platform builds - requires separate function package files for each platform.
 platform=$(cut -d, -f1 <<< "$PLATFORMS")
 if [[ "$PLATFORMS" != "$platform" ]]; then
   echo "error: multi-platform builds has not been implemented yet in this build script" >&2
@@ -26,24 +31,25 @@ if [[ "$PLATFORMS" != "$platform" ]]; then
 fi
 mkdir -p "bin/$platform"
 
-# Build the container image as a tarball using ko.
-image_tarball="./bin/$platform/image.tar.gz"
-rm -f "$image_tarball"
-echo "Building container image to tarball $image_tarball"
-ko build \
-  --debug="$debug" \
-  --disable-optimizations="$debug" \
-  --platform="$platform" \
-  --push=false \
-  --tarball="$image_tarball" \
-  "$go_package"
+# Build the container image using Docker.
+echo "Building container image for $platform with base image $RUNTIME_IMAGE"
+docker build . \
+  --build-arg CGO_ENABLED \
+  --build-arg GOFLAGS \
+  --build-arg GO_GCFLAGS \
+  --build-arg GO_PACKAGE \
+  --build-arg RUNTIME_IMAGE \
+  --file ./Dockerfile \
+  --platform "$platform" \
+  --quiet \
+  --tag "$IMAGE-base"
 
 # Build the crossplane package from the container image tarball.
 function_package_file="./bin/$platform/function-package.xpkg"
 rm -f "$function_package_file"
 echo "Building Crossplane function package to $function_package_file"
 crossplane xpkg build \
-  --embed-runtime-image-tarball="$image_tarball" \
+  --embed-runtime-image="$IMAGE-base" \
   --examples-root=examples \
   --package-file="$function_package_file" \
   --package-root=package
@@ -52,7 +58,7 @@ crossplane xpkg build \
 # https://skaffold.dev/docs/builders/builder-types/custom/
 if [[ "${PUSH_IMAGE}" == "true" ]]; then
   echo "Pushing $IMAGE"
-  crane push "$function_package_file" "$IMAGE" --insecure
+  crossplane xpkg push --package-files="$function_package_file" "$IMAGE" --insecure
 else
   echo "Loading $IMAGE to local Docker daemon"
   docker_load_output=$(docker load --input "$function_package_file" --quiet)

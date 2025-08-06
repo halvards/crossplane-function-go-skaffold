@@ -5,13 +5,14 @@
 # We use the latest Go 1.x version unless asked to use something else.
 # The GitHub Actions CI job sets this argument for a consistent Go version.
 ARG GO_VERSION=1
+ARG BUILDER_IMAGE=docker.io/library/golang:${GO_VERSION}
 ARG RUNTIME_IMAGE=gcr.io/distroless/static-debian12:nonroot
 
 # Setup the base environment. The BUILDPLATFORM is set automatically by Docker.
 # The --platform=${BUILDPLATFORM} flag tells Docker to build the function using
 # the OS and architecture of the host running the build, not the OS and
 # architecture that we're building the function for.
-FROM --platform=${BUILDPLATFORM} golang:${GO_VERSION} AS build
+FROM --platform=${BUILDPLATFORM} ${BUILDER_IMAGE} AS build
 
 WORKDIR /fn
 

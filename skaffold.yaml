@@ -25,8 +25,6 @@ build:
   - localhost:5001
   tagPolicy:
     inputDigest: {}
-  platforms:
-  - linux/arm64
   local:
     concurrency: 0
     push: true
@@ -42,13 +40,6 @@ deploy:
 manifests:
   rawYaml:
   - k8s/*.yaml
-  hooks:
-    after:
-    - host:
-        # Working around Crossplane's non-standard container image fetching.
-        command: [ "sed", "s/localhost:5001/kind-registry:5000/" ]
-        dir: k8s
-        withChange: true
 resourceSelector:
   allow:
   - groupKind: Function.pkg.crossplane.io
@@ -57,6 +48,19 @@ resourceSelector:
     labels:
     - .*
 profiles:
+- name: local-registry
+  # Working around our local registry and Crossplane's non-standard container image fetching.
+  activation:
+  - kubeContext: kind.*
+  patches:
+  - op: add
+    path: /manifests/hooks
+    value:
+      after:
+      - host:
+          command: [ "sed", "s/localhost:5001/kind-registry:5000/" ]
+          dir: k8s
+          withChange: true
 - name: tail
   # Tail the log output of the function Pod.
   # Activate with `-ptail` when running `skaffold run`.
@@ -68,6 +72,14 @@ profiles:
     value:
       host:
         command: [ "sh", "-c", "echo 'Tailing function log output, press Ctrl+C to stop...' ; kubectl logs --context $SKAFFOLD_KUBE_CONTEXT --namespace crossplane-system --selector pkg.crossplane.io/function=crossplane-function-go-skaffold --container package-runtime --follow" ]
+- name: build
+  activation:
+  - command: build
+  patches:
+  - op: add
+    path: /build/platforms
+    value:
+    - linux/amd64
 - name: dev
   # Use a different base image when running `skaffold dev`.
   activation:
@@ -99,12 +111,13 @@ profiles:
       host:
         command: [ "sh", "-c", "./hack/port-forward-debug.sh" ]
 - name: release
-  # Build for linux/amd64 for release, instead of auto-detecting the platorm.
+  # Build for both linux/amd64 and linux/arm64 for release, instead of auto-detecting the platorm.
   patches:
   - op: add
     path: /build/platforms
     value:
     - linux/amd64
+    - linux/arm64
   # Use git tag and commit information for tagging the image, instead of a source code digest.
   - op: replace
     path: /build/tagPolicy

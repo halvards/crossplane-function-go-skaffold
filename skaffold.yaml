@@ -25,9 +25,10 @@ build:
   - localhost:5001
   tagPolicy:
     inputDigest: {}
-  local:
-    concurrency: 0
-    push: true
+  cluster: {}
+  # local:
+  #   concurrency: 0
+  #   push: true
 deploy:
   kubectl:
     hooks:
@@ -40,8 +41,13 @@ deploy:
 manifests:
   rawYaml:
   - k8s/*.yaml
-resourceSelector:
+resourceSelector: # https://skaffold.dev/docs/tutorials/skaffold-resource-selector/
   allow:
+  - groupKind: DeploymentRuntimeConfig.pkg.crossplane.io
+    image:
+    - .*
+    labels:
+    - .*
   - groupKind: Function.pkg.crossplane.io
     image:
     - .spec.package
